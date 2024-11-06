@@ -19,6 +19,7 @@ var (
 	mu            sync.Mutex
 )
 
+// 限制访问频率，防止恶意刷接口
 func RateLimitMiddleware(rps float64, burst int) app.HandlerFunc {
 	return func(ctx context.Context, c *app.RequestContext) {
 		// 获取客户端IP
@@ -65,21 +66,6 @@ func InitJwt() {
 		},
 		// 收到登录数据后的处理逻辑
 		Authenticator: func(ctx context.Context, c *app.RequestContext) (interface{}, error) {
-			clientIP := c.ClientIP() // 获取客户端IP
-			mu.Lock()
-			limiter, exists := limiterMap[clientIP]
-			if !exists {
-				// 创建一个新的速率限制器，限制每秒 1 次请求，允许 5 次突发请求
-				limiter = rate.NewLimiter(1, 5)
-				limiterMap[clientIP] = limiter
-			}
-			mu.Unlock()
-
-			// 检查请求速率
-			if !limiter.Allow() {
-				return nil, errors.New("too many requests, please try again later")
-			}
-
 			var loginStruct struct {
 				Username string `json:"account"`
 				Password string `json:"password"`
